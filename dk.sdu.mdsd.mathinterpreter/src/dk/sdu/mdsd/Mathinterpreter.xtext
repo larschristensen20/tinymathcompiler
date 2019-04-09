@@ -1,0 +1,40 @@
+grammar dk.sdu.mdsd.Mathinterpreter with org.eclipse.xtext.common.Terminals
+
+generate mathinterpreter "http://www.sdu.dk/mdsd/Mathinterpreter"
+
+Model:
+	exp+=MathExp* external+=External*;
+
+MathExp:
+	'result' l=Label 'is' exp=Exp;
+
+Label:
+	name = STRING;
+
+Exp:
+	PlusOrMinus;
+
+External:
+	'external' name=ID '(' parameters+=Parameter (',' parameters+=Parameter)* ')' (exp+=Exp (',' exp+=Exp)*)*;
+
+Parameter:
+	type=ID varName=ID;
+
+Atomic returns Exp:
+	{Number} value=INT;
+
+Parenthesis returns Exp:
+	{Parenthesis} '(' exp=Exp ')';
+
+Primary returns Exp:
+	Atomic | Parenthesis;
+
+PlusOrMinus returns Exp:
+	MultOrDiv (
+		({Plus.left=current} op='+' | {Minus.left=current} op='-') 
+			right=MultOrDiv)*;
+
+MultOrDiv returns Exp:
+	Primary (
+		({Mult.left=current} op='*' | {Div.left=current} op='/') 
+			right=Primary)*;
