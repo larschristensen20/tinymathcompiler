@@ -16,7 +16,9 @@ import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.AbstractGenerator
 import org.eclipse.xtext.generator.IFileSystemAccess2
 import org.eclipse.xtext.generator.IGeneratorContext
-
+import dk.sdu.mdsd.mathinterpreter.ExternalUse
+import dk.sdu.mdsd.mathinterpreter.ExternalDef
+import dk.sdu.mdsd.mathinterpreter.External
 /**
  * Generates code from your model files on save.
  * 
@@ -40,7 +42,7 @@ class MathinterpreterGenerator extends AbstractGenerator {
 	
 	public class MathComputation {
 		«m.generateExternals»
-		
+		«m.generateConstructor»
 		«m.generateCompute»
 	}
 	'''
@@ -52,29 +54,22 @@ class MathinterpreterGenerator extends AbstractGenerator {
 	'''
 	
 	def CharSequence generateExternals(Model m)'''
-	// BEGIN: required for external functions
 	public static interface Externals {
-		«FOR e: m.external»
+		«FOR e: m.declarations.filter(ExternalDef)»
 		public «e.parameters.get(0).type» «e.name»(«FOR ep: e.parameters SEPARATOR ', '»«ep.type» «ep.varName»«ENDFOR»);
 		«ENDFOR»
 	}
 	private Externals externals;
-	«m.generateConstructor»
-	// END: required for external functions
 	'''
 	
 	def CharSequence generateCompute(Model m)'''
 	public void compute() {
-		«FOR math: m.exp.filter(MathExp)»
-		System.out.println("«math.l.name» "+(«math.exp.printExp»));
+		«FOR math: m.declarations.filter(MathExp)»
+		System.out.println("«math.id»: "+(«math.exp.printExp»));
 		«ENDFOR»
-		// BEGIN: external functions only
-		«FOR e: m.external»
-		System.out.println("external example "+(externals.«e.name»(«FOR exp: e.exp SEPARATOR ', '»«exp.printExp»«ENDFOR»)));
-		«ENDFOR»
-		// END: external functions only
 	}
 	'''
+	
 	// Purely for the hovering functionality to work
 	def int computeExp(Exp e) {
 		switch e {
@@ -96,8 +91,8 @@ class MathinterpreterGenerator extends AbstractGenerator {
 			Mult: e.left.printExp + "*" + e.right.printExp
 			Div: e.left.printExp + "/" + e.right.printExp
 			Parenthesis: '(' + e.exp.printExp + ')'
+			External: '''externals.«e.external.name»(«FOR a: e.arguments SEPARATOR ','»«a»«ENDFOR»)'''
 			default: ""
 		}
 	}
 }
-

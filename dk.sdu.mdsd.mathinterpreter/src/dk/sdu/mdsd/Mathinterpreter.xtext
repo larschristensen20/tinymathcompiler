@@ -3,23 +3,26 @@ grammar dk.sdu.mdsd.Mathinterpreter with org.eclipse.xtext.common.Terminals
 generate mathinterpreter "http://www.sdu.dk/mdsd/Mathinterpreter"
 
 Model:
-	exp+=MathExp* external+=External*;
+	declarations+=Declaration*;
+
+Declaration:
+	 ExternalDef | MathExp;
 
 MathExp:
-	'result' l=Label 'is' exp=Exp;
-
-Label:
-	name = STRING;
+	'result' id=STRING 'is' exp=Exp;
 
 Exp:
 	PlusOrMinus;
 
-External:
-	'external' name=ID '(' parameters+=Parameter (',' parameters+=Parameter)* ')' (exp+=Exp (',' exp+=Exp)*)*;
+ExternalDef:
+	'external' name=ID '(' parameters+=Parameter (',' parameters+=Parameter)* ')';
 
 Parameter:
 	type=ID varName=ID;
 
+ExternalUse:
+	{External} external=[ExternalDef] '(' arguments+=INT (',' arguments+=INT)* ')';
+	
 Atomic returns Exp:
 	{Number} value=INT;
 
@@ -27,14 +30,12 @@ Parenthesis returns Exp:
 	{Parenthesis} '(' exp=Exp ')';
 
 Primary returns Exp:
-	Atomic | Parenthesis;
+	ExternalUse | Atomic | Parenthesis;
 
 PlusOrMinus returns Exp:
-	MultOrDiv (
-		({Plus.left=current} op='+' | {Minus.left=current} op='-') 
+	MultOrDiv (({Plus.left=current} op='+' | {Minus.left=current} op='-') 
 			right=MultOrDiv)*;
 
 MultOrDiv returns Exp:
-	Primary (
-		({Mult.left=current} op='*' | {Div.left=current} op='/') 
+	Primary (({Mult.left=current} op='*' | {Div.left=current} op='/') 
 			right=Primary)*;
